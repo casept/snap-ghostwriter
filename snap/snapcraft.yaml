@@ -1,0 +1,91 @@
+name: ghostwriter-casept
+version: '1.4.2'
+summary: An aesthetic, distraction-free Markdown editor. Unofficial snap.
+description: |
+  ghostwriter is a Windows and Linux text editor for Markdown, which is a plain text markup format created by John Gruber.
+  For more information about Markdown, please visit John Gruber’s website at http://www.daringfireball.net.
+  ghostwriter provides a relaxing, distraction-free writing environment, whether your masterpiece be that next blog post,
+  your school paper, or your NaNoWriMo novel.
+grade: stable 
+confinement: strict
+apps:
+  ghostwriter:
+    command: desktop-launch $SNAP/usr/local/bin/ghostwriter
+    plugs: [network, x11, unity7, home, browser-support, cups-control]
+
+parts:
+  multimarkdown:
+    plugin: cmake
+    # Can't use release tarballs as they don't contain needed git submodules
+    source: https://github.com/fletcher/MultiMarkdown-5.git
+    source-tag: 5.4.0
+    build-packages:
+      - build-essential
+    build: |
+      # That file is missing for some reason
+      touch README.html
+      # For some retarded reason it looks for greg under src/, not build/
+      # So we have to build it in src/submodules/greg ourselves
+      cd ../src/submodules/greg/
+      make
+      cd - 
+      cmake ../src
+      make
+    install: |
+      # People who hardcode their install paths should be shot on sight
+      mkdir -p $SNAPCRAFT_PART_INSTALL/bin/
+      cp multimarkdown $SNAPCRAFT_PART_INSTALL/bin/
+      cp scripts/* $SNAPCRAFT_PART_INSTALL/bin/ 
+
+    # Doesn't currently work
+    # Feel free to submit a PR
+    #  discount:
+    #    plugin: autotools 
+    #    source: http://www.pell.portland.or.us/~orc/Code/discount/discount-2.2.2.tar.bz2
+    #    build-packages:
+    #      - build-essential
+    #    prepare: |
+    #      # Why can't people just stick to naming conventions?
+    #      mv configure.sh configure
+    #
+  commonmark:
+    plugin: cmake
+    source: https://github.com/jgm/cmark/archive/0.27.1.tar.gz
+    build-packages:
+      - build-essential
+      - python3
+
+  ghostwriter:
+    plugin: qmake
+    qt-version: qt5
+    source: https://github.com/wereturtle/ghostwriter/archive/v1.4.2.tar.gz
+    build-packages:
+      - build-essential
+      - qt5-default
+      - qtbase5-dev
+      - libqt5svg5-dev
+      - qtmultimedia5-dev
+      - libqt5webkit5-dev
+      - libhunspell-dev
+      - pkg-config
+      - libqt5concurrent5
+      - libqt5printsupport5
+      - libqt5svg5
+    stage-packages:
+      - xcb
+      - libxcb-cursor0
+      - libqt5sql5-sqlite
+      - libqt5concurrent5
+      - libqt5printsupport5
+      - libqt5svg5
+      - libqt5multimedia5
+      - libqt5webkit5
+        # Disabled for now, no easy way to set proper paths
+        #      - pandoc
+    after:
+      - desktop-qt5
+      - commonmark
+    # Doesn't currently work
+    # Feel free to submit a PR
+    #      - discount
+      - multimarkdown
